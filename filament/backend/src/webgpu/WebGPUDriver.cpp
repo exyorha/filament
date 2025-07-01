@@ -72,6 +72,8 @@ WebGPUDriver::WebGPUDriver(WebGPUPlatform& platform,
       mAdapter{ mPlatform.requestAdapter(nullptr) },
       mDevice{ mPlatform.requestDevice(mAdapter) },
       mQueue{ mDevice.GetQueue() },
+      mPipelineLayoutCache{ mDevice },
+      mPipelineCache{ mDevice },
       mRenderPassMipmapGenerator{ mDevice },
       mSpdComputePassMipmapGenerator{ mDevice },
       mHandleAllocator{ "Handles", driverConfig.handleArenaSize,
@@ -126,7 +128,9 @@ void WebGPUDriver::setFrameCompletedCallback(Handle<HwSwapChain> sch,
 void WebGPUDriver::setPresentationTime(int64_t monotonic_clock_ns) {
 }
 
-void WebGPUDriver::endFrame(uint32_t frameId) {
+void WebGPUDriver::endFrame(const uint32_t /* frameId */) {
+    mPipelineLayoutCache.onFrameEnd();
+    mPipelineCache.onFrameEnd();
 }
 
 void WebGPUDriver::flush(int) {
@@ -1138,44 +1142,40 @@ size_t WebGPUDriver::computePipelineKey(PipelineState const& pipelineState,
 }
 
 void WebGPUDriver::bindPipeline(PipelineState const& pipelineState) {
-    auto pipelineKey{ computePipelineKey(pipelineState, mCurrentRenderTarget) };
-    if (mPipelineMap.find(pipelineKey) != mPipelineMap.end()) {
-        mRenderPassEncoder.SetPipeline(mPipelineMap[pipelineKey]);
-        return;
-    }
-    const auto program = handleCast<WebGPUProgram>(pipelineState.program);
+    assert_invariant(mRenderPassEncoder);
+    const auto program{ handleCast<WebGPUProgram>(pipelineState.program) };
     assert_invariant(program);
     assert_invariant(program->computeShaderModule == nullptr &&
                      "WebGPU backend does not (yet) support compute pipelines.");
     FILAMENT_CHECK_POSTCONDITION(program->vertexShaderModule)
             << "WebGPU backend requires a vertex shader module for a render pipeline";
+    const auto vertexBufferInfo{ handleCast<WebGPUVertexBufferInfo>(
+            pipelineState.vertexBufferInfo) };
+    assert_invariant(vertexBufferInfo);
     std::array<wgpu::BindGroupLayout, MAX_DESCRIPTOR_SET_COUNT> bindGroupLayouts{};
     assert_invariant(bindGroupLayouts.size() >= pipelineState.pipelineLayout.setLayout.size());
-    size_t bindGroupLayoutCount = 0;
+    size_t bindGroupLayoutCount{ 0 };
     for (size_t i = 0; i < bindGroupLayouts.size(); i++) {
-        const auto handle = pipelineState.pipelineLayout.setLayout[bindGroupLayoutCount];
+        const auto handle{ pipelineState.pipelineLayout.setLayout[bindGroupLayoutCount] };
         if (handle.getId() == HandleBase::nullid) {
             continue;
         }
         bindGroupLayouts[bindGroupLayoutCount++] =
                 handleCast<WebGPUDescriptorSetLayout>(handle)->getLayout();
     }
-    std::stringstream layoutLabelStream;
-    layoutLabelStream << program->name.c_str() << " layout";
-    const auto layoutLabel = layoutLabelStream.str();
-    const wgpu::PipelineLayoutDescriptor layoutDescriptor{
-        .label = wgpu::StringView(layoutLabel),
-        .bindGroupLayoutCount = bindGroupLayoutCount,
-        .bindGroupLayouts = bindGroupLayouts.data()
-        // TODO investigate immediateDataRangeByteSize
-    };
-    const wgpu::PipelineLayout layout = mDevice.CreatePipelineLayout(&layoutDescriptor);
-    FILAMENT_CHECK_POSTCONDITION(layout)
-            << "Failed to create wgpu::PipelineLayout for render pipeline for "
-            << layoutDescriptor.label;
-    const auto vertexBufferInfo =
-            handleCast<WebGPUVertexBufferInfo>(pipelineState.vertexBufferInfo);
-    assert_invariant(vertexBufferInfo);
+    wgpu::PipelineLayout const& layout{ mPipelineLayoutCache.getOrCreatePipelineLayout(
+            program->name, bindGroupLayouts, bindGroupLayoutCount) };
+    wgpu::RenderPipeline const& pipeline{ mPipelineCache.getOrCreateRenderPipeline(program->name,
+            program->vertexShaderModule, program->fragmentShaderModule,
+            vertexBufferInfo->getWebGPUSlotBindingInfos(),
+            vertexBufferInfo->getVertexBufferLayouts(), layout) };
+    mRenderPassEncoder.SetPipeline(pipeline);
+
+    auto pipelineKey{ computePipelineKey(pipelineState, mCurrentRenderTarget) };
+    if (mPipelineMap.find(pipelineKey) != mPipelineMap.end()) {
+        mRenderPassEncoder.SetPipeline(mPipelineMap[pipelineKey]);
+        return;
+    }
 
     std::vector<wgpu::TextureFormat> pipelineColorFormats;
     wgpu::TextureFormat pipelineDepthStencilFormat = wgpu::TextureFormat::Undefined;

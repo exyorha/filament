@@ -20,6 +20,8 @@
 #include "WebGPURenderTarget.h"
 #include "webgpu/WebGPUConstants.h"
 #include "webgpu/WebGPUMsaaTextureResolver.h"
+#include "webgpu/WebGPUPipelineCache.h"
+#include "webgpu/WebGPUPipelineLayoutCache.h"
 #include "webgpu/WebGPURenderPassMipmapGenerator.h"
 #include <backend/platforms/WebGPUPlatform.h>
 
@@ -79,6 +81,8 @@ private:
     wgpu::CommandBuffer mCommandBuffer = nullptr;
     WebGPURenderTarget* mDefaultRenderTarget = nullptr;
     WebGPURenderTarget* mCurrentRenderTarget = nullptr;
+    WebGPUPipelineLayoutCache mPipelineLayoutCache;
+    WebGPUPipelineCache mPipelineCache;
     WebGPURenderPassMipmapGenerator mRenderPassMipmapGenerator;
     spd::MipmapGenerator mSpdComputePassMipmapGenerator;
     WebGPUMsaaTextureResolver mMsaaTextureResolver{};

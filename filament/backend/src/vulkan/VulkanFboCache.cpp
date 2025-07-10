@@ -36,6 +36,7 @@ bool VulkanFboCache::RenderPassEq::operator()(const RenderPassKey& k1,
         if (k1.colorFormat[i] != k2.colorFormat[i]) return false;
     }
     if (k1.depthFormat != k2.depthFormat) return false;
+    if (k1.foveationFormat != k2.foveationFormat) return false;
     if (k1.clear != k2.clear) return false;
     if (k1.discardStart != k2.discardStart) return false;
     if (k1.discardEnd != k2.discardEnd) return false;
@@ -54,6 +55,7 @@ bool VulkanFboCache::FboKeyEqualFn::operator()(const FboKey& k1, const FboKey& k
     if (k1.layers != k2.layers) return false;
     if (k1.samples != k2.samples) return false;
     if (k1.depth != k2.depth) return false;
+    if (k1.foveation != k2.foveation) return false;
     for (int i = 0; i < MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT; i++) {
         if (k1.color[i] != k2.color[i]) return false;
         if (k1.resolve[i] != k2.resolve[i]) return false;
@@ -79,7 +81,7 @@ VkFramebuffer VulkanFboCache::getFramebuffer(FboKey const& config) noexcept {
     // The attachment list contains: Color Attachments, Resolve Attachments, and Depth Attachment.
     // For simplicity, create an array that can hold the maximum possible number of attachments.
     // Note that this needs to have the same ordering as the corollary array in getRenderPass.
-    VkImageView attachments[MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + 1];
+    VkImageView attachments[MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + 2];
     uint32_t attachmentCount = 0;
     for (VkImageView attachment : config.color) {
         if (attachment) {
@@ -93,6 +95,10 @@ VkFramebuffer VulkanFboCache::getFramebuffer(FboKey const& config) noexcept {
     }
     if (config.depth) {
         attachments[attachmentCount++] = config.depth;
+    }
+
+    if(config.foveation) {
+        attachments[attachmentCount++] = config.foveation;
     }
 
     #if FVK_ENABLED(FVK_DEBUG_FBO_CACHE)
@@ -146,6 +152,7 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey const& config) noexcept
     VkAttachmentReference depthAttachmentRef = {};
 
     const bool hasDepth = config.depthFormat != VK_FORMAT_UNDEFINED;
+    const bool hasFoveation = config.foveationFormat != VK_FORMAT_UNDEFINED;
 
     VkSubpassDescription subpasses[2] = {{
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -165,7 +172,7 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey const& config) noexcept
     // The attachment list contains: Color Attachments, Resolve Attachments, and Depth Attachment.
     // For simplicity, create an array that can hold the maximum possible number of attachments.
     // Note that this needs to have the same ordering as the corollary array in getFramebuffer.
-    VkAttachmentDescription attachments[MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + 1] = {};
+    VkAttachmentDescription attachments[MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + MRT::MAX_SUPPORTED_RENDER_TARGET_COUNT + 2] = {};
 
     // We support 2 subpasses, which means we need to supply 1 dependency struct.
     VkSubpassDependency dependencies[1] = {{
@@ -320,6 +327,27 @@ VkRenderPass VulkanFboCache::getRenderPass(RenderPassKey const& config) noexcept
             .finalLayout = fvkutils::getVkLayout(FINAL_DEPTH_ATTACHMENT_LAYOUT),
         };
     }
+    VkRenderPassFragmentDensityMapCreateInfoEXT foveationInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_FRAGMENT_DENSITY_MAP_CREATE_INFO_EXT
+    };
+    if(hasFoveation) {
+        foveationInfo.pNext = renderPassInfo.pNext;
+        renderPassInfo.pNext = &foveationInfo;
+        foveationInfo.fragmentDensityMapAttachment.attachment = attachmentIndex;
+        foveationInfo.fragmentDensityMapAttachment.layout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+
+        attachments[attachmentIndex++] = {
+            .format = config.foveationFormat,
+            .samples = VK_SAMPLE_COUNT_1_BIT,
+            .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+            .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+            .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+            .initialLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT,
+            .finalLayout = VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT
+        };
+    }
+
     renderPassInfo.attachmentCount = attachmentIndex;
 
     // Finally, create the VkRenderPass.

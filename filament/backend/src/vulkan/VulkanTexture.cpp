@@ -124,6 +124,10 @@ inline VulkanLayout getDefaultLayoutImpl(TextureUsage usage) {
     if (any(usage & TextureUsage::COLOR_ATTACHMENT)) {
         return VulkanLayout::COLOR_ATTACHMENT;
     }
+
+    if(any(usage & TextureUsage::FOVEATION_ATTACHMENT))
+        return VulkanLayout::FRAGMENT_DENSITY_MAP;
+
     // Finally, the layout for an immutable texture is optimal read-only.
     return VulkanLayout::FRAG_READ;
 }
@@ -138,6 +142,9 @@ inline VulkanLayout getDefaultLayoutImpl(VkImageUsageFlags vkusage) {
     }
     if (vkusage & VK_IMAGE_USAGE_SAMPLED_BIT) {
         usage = usage | TextureUsage::SAMPLEABLE;
+    }
+    if(vkusage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) {
+        usage = usage | TextureUsage::FOVEATION_ATTACHMENT;
     }
     return getDefaultLayoutImpl(usage);
 }
@@ -214,6 +221,9 @@ VkImageUsageFlags getUsage(VulkanContext const& context, uint8_t samples,
         if (samples > 1) {
             usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
         }
+    }
+    if(any(tusage & TextureUsage::FOVEATION_ATTACHMENT)) {
+        usage |= VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT;
     }
     return usage;
 }
@@ -403,8 +413,10 @@ VulkanTexture::VulkanTexture(VkDevice device, VkPhysicalDevice physicalDevice,
     uint32_t memoryTypeIndex
             = context.selectMemoryType(memReqs.memoryTypeBits, requiredMemoryFlags);
 
-    FILAMENT_CHECK_POSTCONDITION(memoryTypeIndex < VK_MAX_MEMORY_TYPES)
-            << "VulkanTexture: unable to find a memory type that meets requirements.";
+    if(memoryTypeIndex == VK_MAX_MEMORY_TYPES) {
+        utils::slog.e << "VulkanTexture: unable to find a memory type that meets requirements; selecting type index 0 as a workaround\n";
+        memoryTypeIndex = 0;
+    }
 
     VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,

@@ -91,10 +91,13 @@ public:
      */
     struct SwapChainBundle {
         utils::FixedCapacityVector<VkImage> colors;
+        utils::FixedCapacityVector<VkImage> foveationImages;
         VkImage depth = VK_NULL_HANDLE;
         VkFormat colorFormat = VK_FORMAT_UNDEFINED;
+        VkFormat foveationFormat = VK_FORMAT_UNDEFINED;
         VkFormat depthFormat = VK_FORMAT_UNDEFINED;
         VkExtent2D extent = {0, 0};
+        VkExtent2D foveationExtent = {0, 0};
         uint32_t layerCount = 1;
         bool isProtected = false;
     };

@@ -52,6 +52,7 @@ enum class VulkanLayout : uint8_t {
     COLOR_ATTACHMENT,
     // For color attachment MSAA resolves.
     COLOR_ATTACHMENT_RESOLVE,
+    FRAGMENT_DENSITY_MAP
 };
 
 struct VulkanLayoutTransition {
@@ -89,6 +90,8 @@ constexpr inline VkImageLayout getVkLayout(VulkanLayout layout) {
             return VK_IMAGE_LAYOUT_GENERAL;
         case VulkanLayout::COLOR_ATTACHMENT_RESOLVE:
             return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        case VulkanLayout::FRAGMENT_DENSITY_MAP:
+            return VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
     }
 }
 

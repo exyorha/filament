@@ -60,6 +60,16 @@ struct VulkanSwapChain : public HwSwapChain, fvkmemory::Resource {
         return mColors[imageIndex];
     }
 
+    fvkmemory::resource_ptr<VulkanTexture> getCurrentFoveation() const noexcept {
+        if(mFoveationImages.empty())
+            return {};
+
+        uint32_t const imageIndex = mCurrentSwapIndex;
+        FILAMENT_CHECK_PRECONDITION(
+            imageIndex != VulkanPlatform::ImageSyncData::INVALID_IMAGE_INDEX);
+        return mFoveationImages[imageIndex];
+    }
+
     inline fvkmemory::resource_ptr<VulkanTexture> getDepth() const noexcept {
         return mDepth;
     }
@@ -97,6 +107,7 @@ private:
     // We create VulkanTextures based on VkImages. VulkanTexture has facilities for doing layout
     // transitions, which are useful here.
     utils::FixedCapacityVector<fvkmemory::resource_ptr<VulkanTexture>> mColors;
+    utils::FixedCapacityVector<fvkmemory::resource_ptr<VulkanTexture>> mFoveationImages;
     fvkmemory::resource_ptr<VulkanTexture> mDepth;
     VkExtent2D mExtent;
     uint32_t mLayerCount;

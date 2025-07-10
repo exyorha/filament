@@ -82,6 +82,10 @@ getVkTransition(const VulkanLayoutTransition& transition) {
             srcAccessMask = VK_ACCESS_NONE;
             srcStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
             break;
+        case VulkanLayout::FRAGMENT_DENSITY_MAP:
+            srcAccessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+            srcStage = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
+            break;
     }
 
     switch (transition.newLayout) {
@@ -124,6 +128,10 @@ getVkTransition(const VulkanLayoutTransition& transition) {
         case VulkanLayout::UNDEFINED:
             dstAccessMask = 0;
             dstStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            break;
+        case VulkanLayout::FRAGMENT_DENSITY_MAP:
+            dstAccessMask = VK_ACCESS_FRAGMENT_DENSITY_MAP_READ_BIT_EXT;
+            dstStage = VK_PIPELINE_STAGE_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
             break;
     }
 

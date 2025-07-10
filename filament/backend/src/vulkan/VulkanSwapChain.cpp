@@ -65,9 +65,18 @@ VulkanSwapChain::~VulkanSwapChain() {
 
 void VulkanSwapChain::update() {
     mColors.clear();
+    mFoveationImages.clear();
 
     auto const bundle = mPlatform->getSwapChainBundle(swapChain);
+
+    FILAMENT_CHECK_PRECONDITION(
+        bundle.foveationImages.size() == 0 ||
+        bundle.foveationImages.size() == bundle.colors.size())
+                << "The number of foveation images must either match the number of color images or be zero";
+
     mColors.reserve(bundle.colors.size());
+    mFoveationImages.reserve(bundle.foveationImages.size());
+
     VkDevice const device = mPlatform->getDevice();
 
     TextureUsage depthUsage = TextureUsage::DEPTH_ATTACHMENT;
@@ -82,6 +91,14 @@ void VulkanSwapChain::update() {
                 bundle.colorFormat, VK_NULL_HANDLE /*ycrcb */, 1, bundle.extent.width,
                 bundle.extent.height, bundle.layerCount, colorUsage, mStagePool);
         mColors.push_back(colorTexture);
+    }
+
+    for (auto const foveationImage: bundle.foveationImages) {
+        auto foveationImageTexture = fvkmemory::resource_ptr<VulkanTexture>::construct(mResourceManager,
+                mContext, device, mAllocator, mResourceManager, mCommands, foveationImage, VK_NULL_HANDLE,
+                bundle.foveationFormat, VK_NULL_HANDLE /*ycrcb */, 1, bundle.foveationExtent.width,
+                bundle.foveationExtent.height, bundle.layerCount, TextureUsage::FOVEATION_ATTACHMENT, mStagePool);
+        mFoveationImages.push_back(foveationImageTexture);
     }
 
     mDepth = fvkmemory::resource_ptr<VulkanTexture>::construct(mResourceManager, mContext, device,
@@ -104,6 +121,9 @@ void VulkanSwapChain::present() {
                 .layerCount = mLayerCount,
         };
         mColors[mCurrentSwapIndex]->transitionLayout(&commands, subresources, VulkanLayout::PRESENT);
+        if(!mFoveationImages.empty()) {
+            mFoveationImages[mCurrentSwapIndex]->transitionLayout(&commands, subresources, VulkanLayout::PRESENT);
+        }
     }
 
     mCommands->flush();

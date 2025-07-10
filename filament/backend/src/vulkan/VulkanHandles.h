@@ -357,6 +357,7 @@ private:
         int8_t depthIndex = UNDEFINED_INDEX;
         int8_t msaaDepthIndex = UNDEFINED_INDEX;
         int8_t msaaIndex = UNDEFINED_INDEX;
+        int8_t foveationIndex = UNDEFINED_INDEX;
     };
     bool const mOffscreen;
     bool mProtected;

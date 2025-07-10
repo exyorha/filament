@@ -332,8 +332,8 @@ void VulkanRenderTarget::bindToSwapChain(fvkmemory::resource_ptr<VulkanSwapChain
 
     if (swapchain->getDepth()) {
         VulkanAttachment depth = createSwapchainAttachment(swapchain->getDepth());
+        mInfo->depthIndex = mInfo->attachments.size();
         mInfo->attachments.push_back(depth);
-        mInfo->depthIndex = 1;
 
         rpkey.depthFormat = depth.getFormat();
         fbkey.depth = depth.getImageView();
@@ -341,6 +341,22 @@ void VulkanRenderTarget::bindToSwapChain(fvkmemory::resource_ptr<VulkanSwapChain
         rpkey.depthFormat = VK_FORMAT_UNDEFINED;
         fbkey.depth = VK_NULL_HANDLE;
     }
+
+    auto foveationImage = swapchain->getCurrentFoveation();
+
+    if(foveationImage) {
+        VulkanAttachment foveationAttachment = createSwapchainAttachment(foveationImage);
+
+        mInfo->foveationIndex = mInfo->attachments.size();
+        mInfo->attachments.push_back(foveationAttachment);
+
+        rpkey.foveationFormat = foveationAttachment.getFormat();
+        fbkey.foveation = foveationAttachment.getImageView();
+    } else {
+        rpkey.foveationFormat = VK_FORMAT_UNDEFINED;
+        fbkey.foveation = VK_NULL_HANDLE;
+    }
+
     mInfo->colors.set(0);
 }
 
@@ -501,6 +517,9 @@ void VulkanRenderTarget::emitBarriersBeginRenderPass(VulkanCommandBuffer& comman
     }
     if (mInfo->msaaDepthIndex != Auxiliary::UNDEFINED_INDEX) {
         barrier(attachments[mInfo->msaaDepthIndex], VulkanLayout::DEPTH_ATTACHMENT);
+    }
+    if(mInfo->foveationIndex != Auxiliary::UNDEFINED_INDEX) {
+        barrier(attachments[mInfo->foveationIndex], VulkanLayout::FRAGMENT_DENSITY_MAP);
     }
 }
 

@@ -144,7 +144,7 @@ void CommandBufferQueue::flush() {
 }
 
 std::vector<CommandBufferQueue::Range> CommandBufferQueue::waitForCommands() const {
-    if (!UTILS_HAS_THREADING) {
+    if (!UTILS_HAS_DRIVER_THREAD) {
         return std::move(mCommandBuffersToExecute);
     }
     std::unique_lock lock(mLock);

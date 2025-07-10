@@ -48,7 +48,7 @@ using namespace filament::math;
 namespace filament::backend {
 
 DriverBase::DriverBase() noexcept {
-    if constexpr (UTILS_HAS_THREADING) {
+    if constexpr (UTILS_HAS_DRIVER_THREAD) {
         // This thread services user callbacks
         mServiceThread = std::thread([this]() {
             do {
@@ -78,7 +78,7 @@ DriverBase::DriverBase() noexcept {
 DriverBase::~DriverBase() noexcept {
     assert_invariant(mCallbacks.empty());
     assert_invariant(mServiceThreadCallbackQueue.empty());
-    if constexpr (UTILS_HAS_THREADING) {
+    if constexpr (UTILS_HAS_DRIVER_THREAD) {
         // quit our service thread
         std::unique_lock<std::mutex> lock(mServiceThreadLock);
         mExitRequested = true;
@@ -109,7 +109,7 @@ void DriverBase::CallbackData::release(CallbackData* data) {
 
 
 void DriverBase::scheduleCallback(CallbackHandler* handler, void* user, CallbackHandler::Callback callback) {
-    if (handler && UTILS_HAS_THREADING) {
+    if (handler && UTILS_HAS_DRIVER_THREAD) {
         std::lock_guard<std::mutex> const lock(mServiceThreadLock);
         mServiceThreadCallbackQueue.emplace_back(handler, callback, user);
         mServiceThreadCondition.notify_one();

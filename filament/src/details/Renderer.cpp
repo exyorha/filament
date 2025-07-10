@@ -173,7 +173,7 @@ void FRenderer::terminate(FEngine& engine) {
     // Before we can destroy this Renderer's resources, we must make sure
     // that all pending commands have been executed (as they could reference data in this
     // instance, e.g. Fences, Callbacks, etc...)
-    if (UTILS_HAS_THREADING) {
+    if (UTILS_HAS_DRIVER_THREAD) {
         Fence::waitAndDestroy(engine.createFence());
     } else {
         // In single threaded mode, allow recently-created objects (e.g. no-op fences in Skipper)
@@ -402,7 +402,7 @@ void FRenderer::endFrame() {
     FEngine& engine = mEngine;
     FEngine::DriverApi& driver = engine.getDriverApi();
 
-    if (UTILS_HAS_THREADING) {
+    if (UTILS_HAS_DRIVER_THREAD) {
         // on debug builds this helps to catch cases where we're writing to
         // the buffer form another thread, which is currently not allowed.
         driver.debugThreading();

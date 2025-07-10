@@ -147,6 +147,12 @@
 #   define UTILS_HAS_THREADING 1
 #endif
 
+#if defined(FILAMENT_DISABLE_DRIVER_THREAD) || !UTILS_HAS_THREADING
+#  define UTILS_HAS_DRIVER_THREAD 0
+#else
+#  define UTILS_HAS_DRIVER_THREAD 1
+#endif
+
 #if __has_attribute(noinline)
 #define UTILS_NOINLINE __attribute__((noinline))
 #else

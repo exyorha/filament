@@ -49,6 +49,8 @@ option(FILAMENT_SUPPORTS_OSMESA "Enable OSMesa (headless GL context) for Filamen
 
 option(FILAMENT_ENABLE_FGVIEWER "Enable the frame graph viewer" OFF)
 
+option(FILAMENT_DISABLE_DRIVER_THREAD "Disable the driver thread while keeping the rest of the threading available" OFF)
+
 # This is to disable GTAO for the short-term while we investigate a way to better manage size increases.
 # On the regular filament build (where size is of less concern), we enable GTAO by default.
 option(FILAMENT_DISABLE_GTAO "Disable GTAO" OFF)

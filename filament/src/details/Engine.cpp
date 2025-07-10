@@ -117,7 +117,7 @@ Engine* FEngine::create(Builder const& builder) {
 
     // Normally we launch a thread and create the context and Driver from there (see FEngine::loop).
     // In the single-threaded case, we do so in the here and now.
-    if constexpr (!UTILS_HAS_THREADING) {
+    if constexpr (!UTILS_HAS_DRIVER_THREAD) {
         Platform* platform = builder->mPlatform;
         void* const sharedContext = builder->mSharedContext;
 
@@ -161,14 +161,14 @@ Engine* FEngine::create(Builder const& builder) {
     // now we can initialize the largest part of the engine
     instance->init();
 
-    if constexpr (!UTILS_HAS_THREADING) {
+    if constexpr (!UTILS_HAS_DRIVER_THREAD) {
         instance->execute();
     }
 
     return instance;
 }
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
 
 void FEngine::create(Builder const& builder, Invocable<void(void*)>&& callback) {
     FILAMENT_TRACING_ENABLE(FILAMENT_TRACING_CATEGORY_FILAMENT);
@@ -281,7 +281,7 @@ FEngine::FEngine(Builder const& builder) :
     mJobSystem.adopt();
 
     slog.i << "FEngine (" << sizeof(void*) * 8 << " bits) created at " << this << " "
-           << "(threading is " << (UTILS_HAS_THREADING ? "enabled)" : "disabled)") << io::endl;
+           << "(threading is " << (UTILS_HAS_DRIVER_THREAD ? "enabled)" : "disabled)") << io::endl;
 }
 
 uint32_t FEngine::getJobSystemThreadPoolSize(Config const& config) noexcept {
@@ -644,7 +644,7 @@ void FEngine::shutdown() {
 
     // now wait for all pending commands to be executed and the thread to exit
     mCommandBufferQueue.requestExit();
-    if constexpr (!UTILS_HAS_THREADING) {
+    if constexpr (!UTILS_HAS_DRIVER_THREAD) {
         execute();
         getDriverApi().terminate();
     } else {
@@ -1533,7 +1533,7 @@ Engine::Builder& Engine::Builder::features(std::initializer_list<char const *> c
     return *this;
 }
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
 
 void Engine::Builder::build(Invocable<void(void*)>&& callback) const {
     FEngine::create(*this, std::move(callback));

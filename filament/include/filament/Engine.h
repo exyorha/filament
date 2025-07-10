@@ -424,7 +424,7 @@ public:
      */
     utils::Slice<const FeatureFlag> getFeatureFlags() const noexcept;
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
     using CreateCallback = void(void* UTILS_NULLABLE user, void* UTILS_NONNULL token);
 #endif
 
@@ -511,7 +511,7 @@ public:
          */
         Builder& features(std::initializer_list<char const *> list) noexcept;
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
         /**
          * Creates the filament Engine asynchronously.
          *
@@ -553,7 +553,7 @@ public:
     }
 
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
     /**
      * Backward compatibility helper to create an Engine asynchronously.
      * @see Builder
@@ -1017,7 +1017,7 @@ public:
      *
      * @see setPaused
      */
-    bool isPaused() const noexcept(UTILS_HAS_THREADING);
+    bool isPaused() const noexcept(UTILS_HAS_DRIVER_THREAD);
 
     /**
      * Pause or resume rendering thread.

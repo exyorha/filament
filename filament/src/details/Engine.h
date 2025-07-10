@@ -140,7 +140,7 @@ public:
 public:
     static Engine* create(Builder const& builder);
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
     static void create(Builder const& builder, utils::Invocable<void(void* token)>&& callback);
     static FEngine* getEngine(void* token);
 #endif

@@ -62,7 +62,7 @@ void Engine::destroy(Engine* engine) {
     FEngine::destroy(downcast(engine));
 }
 
-#if UTILS_HAS_THREADING
+#if UTILS_HAS_DRIVER_THREAD
 Engine* Engine::getEngine(void* token) {
     return FEngine::getEngine(token);
 }
@@ -377,7 +377,7 @@ void* Engine::streamAlloc(size_t const size, size_t const alignment) noexcept {
 // The external-facing execute does a flush, and is meant only for single-threaded environments.
 // It also discards the boolean return value, which would otherwise indicate a thread exit.
 void Engine::execute() {
-    FILAMENT_CHECK_PRECONDITION(!UTILS_HAS_THREADING)
+    FILAMENT_CHECK_PRECONDITION(!UTILS_HAS_DRIVER_THREAD)
             << "Execute is meant for single-threaded platforms.";
     downcast(this)->flush();
     downcast(this)->execute();
@@ -387,14 +387,14 @@ JobSystem& Engine::getJobSystem() noexcept {
     return downcast(this)->getJobSystem();
 }
 
-bool Engine::isPaused() const noexcept(UTILS_HAS_THREADING) {
-    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_THREADING)
+bool Engine::isPaused() const noexcept(UTILS_HAS_DRIVER_THREAD) {
+    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_DRIVER_THREAD)
             << "Pause is meant for multi-threaded platforms.";
     return downcast(this)->isPaused();
 }
 
 void Engine::setPaused(bool const paused) {
-    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_THREADING)
+    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_DRIVER_THREAD)
             << "Pause is meant for multi-threaded platforms.";
     downcast(this)->setPaused(paused);
 }

@@ -71,7 +71,7 @@ FenceStatus FFence::waitAndDestroy(FFence* fence, Mode const mode) noexcept {
 
 UTILS_NOINLINE
 FenceStatus FFence::wait(Mode const mode, uint64_t const timeout) {
-    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_THREADING || timeout == 0)
+    FILAMENT_CHECK_PRECONDITION(UTILS_HAS_DRIVER_THREAD || timeout == 0)
             << "Non-zero timeout requires threads.";
 
     FEngine& engine = mEngine;

@@ -178,6 +178,15 @@ if (WEBGL_PTHREADS)
     target_compile_definitions(${TARGET} PUBLIC -DFILAMENT_WASM_THREADS)
 endif()
 
+if(FILAMENT_SINGLE_THREADED)
+    target_compile_definitions(${TARGET} PUBLIC -DFILAMENT_SINGLE_THREADED)
+endif()
+
+if(FILAMENT_DISABLE_DRIVER_THREAD)
+    target_compile_definitions(${TARGET} PUBLIC -DFILAMENT_DISABLE_DRIVER_THREAD)
+endif()
+
+
 # The Path tests are platform-specific
 if (NOT WEBGL)
     if (WIN32)
